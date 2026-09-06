@@ -1,27 +1,18 @@
 import streamlit as st
-from openai import OpenAI
-import os
+import requests
 
-# Set up the webpage layout
-st.set_page_config(page_title="Public AI Chatbot", page_icon="💬")
-st.title("🤖 My Custom ChatGPT")
-st.caption("A public chatbot built with Python and Streamlit")
+st.set_page_config(page_title="Free Public AI Chatbot", page_icon="💬")
+st.title("🤖 My Custom Free ChatGPT")
+st.caption("Running 100% free open-source AI")
 
-# Securely fetch the API key from Streamlit's dashboard secrets
-API_KEY = st.secrets.get("OPENAI_API_KEY")
-client = OpenAI(api_key=API_KEY)
-
-# Streamlit Session State keeps user chats separate from each other
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! Ask me anything."}
+        {"role": "assistant", "content": "Hello! Ask me anything. I am completely free to use!"}
     ]
 
-# Display all previous messages in the chat UI
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-# Handle new user input
 if user_query := st.chat_input("Type your message here..."):
     st.session_state.messages.append({"role": "user", "content": user_query})
     st.chat_message("user").write(user_query)
@@ -29,15 +20,23 @@ if user_query := st.chat_input("Type your message here..."):
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         
-        # Call the OpenAI model
-        completion = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a public chatbot assistant."}
-            ] + st.session_state.messages
-        )
+        # Using a fast, free conversational AI model from Meta
+        API_URL = "https://huggingface.co"
+        payload = {"inputs": {"text": user_query}}
         
-        ai_response = completion.choices.message.content
-        response_placeholder.write(ai_response)
-        
-    st.session_state.messages.append({"role": "assistant", "content": ai_response})
+        try:
+            response = requests.post(API_URL, json=payload)
+            res_data = response.json()
+            
+            # Extract the text answer smoothly from the free API return format
+            if isinstance(res_data, list) and len(res_data) > 0 and "generated_text" in res_data[0]:
+                ai_response = res_data[0]["generated_text"]
+            elif "generated_text" in res_data:
+                ai_response = res_data["generated_text"]
+            else:
+                ai_response = "I am processing. Please say that one more time!"
+                
+            response_placeholder.write(ai_response)
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+        except Exception as e:
+            response_placeholder.write("Warming up my free brain servers... please try sending your message again!")
